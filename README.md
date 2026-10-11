@@ -3,10 +3,32 @@
 Application web de comptage de pas créée à partir d'un carnet d'entraînement.
 Planning de 24 semaines démarrant le **12 octobre 2026**.
 
+## 📲 Ouvrir l'application
+
+![QR code](qrcode.png)
+
+**Ou directement :** <https://manonlacombe.github.io/pas-a-pas/>
+
+Scanner le QR code avec l'appareil photo du téléphone pour ouvrir l'application.
+
 ## 📱 Utilisation
 
 Ouvrir `index.html` dans un navigateur (mobile ou desktop).
 Sur mobile : menu du navigateur → **Ajouter à l'écran d'accueil** pour l'installer comme une application.
+
+### 📦 Version Android (comptage automatique)
+
+Le fichier **`PasAPas.apk`** est une application Android complète qui compte les pas
+**même quand le téléphone est en veille ou écran éteint**, via le capteur de l'appareil.
+
+Installation :
+1. Transférer `PasAPas.apk` sur le téléphone
+2. Paramètres → Applications → **Accès aux applications spéciales** → *Installer des applications inconnues* → autoriser
+3. Ouvrir le fichier `.apk` et confirmer l'installation
+4. Au lancement, accepter les permissions (activité physique + notifications)
+
+Pour éviter qu'Android ne l'arrête en arrière-plan :
+**Paramètres → Applications → Pas à Pas → Batterie → Sans restriction**
 
 ## 📅 Le planning
 
@@ -51,6 +73,8 @@ styles.css      Design mobile-first
 planning.js     Générateur de planning
 app.js          Logique applicative
 manifest.json   Configuration PWA
+qrcode.png      QR code vers l'application en ligne
+PasAPas.apk     Application Android (comptage en arrière-plan)
 ```
 
 ## ⚠️ Avertissement
