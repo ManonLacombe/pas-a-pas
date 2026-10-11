@@ -319,7 +319,8 @@ function renderStats() {
 
     // Total global
     const totalSteps = Object.values(state.steps).reduce((a, b) => a + b, 0);
-    document.getElementById('stat-total').textContent = totalSteps > 0
+    const elTotal = document.getElementById('stat-total');
+    if (elTotal) elTotal.textContent = totalSteps > 0
         ? (totalSteps / 1000).toFixed(1) + 'k'
         : '—';
 
