@@ -28,6 +28,9 @@ function init() {
     setupModals();
     setupSettings();
     renderToday();
+    // Si l'app tourne dans le natif Android, active la synchro du capteur.
+    demarrerSyncAuto();
+    window.syncPasEtAfficher();
 }
 
 /**
@@ -153,16 +156,38 @@ window.updateSteps = function (steps) {
 /**
  * Indique visuellement que le comptage est automatique.
  */
-function showSensorBadge() {
+function showSensorBadge(texte) {
     let badge = document.getElementById('sensor-badge');
     if (!badge) {
         const card = document.querySelector('.steps-card');
         if (!card) return;
         badge = document.createElement('div');
         badge.id = 'sensor-badge';
-        badge.textContent = '📡 Comptage automatique actif';
         card.appendChild(badge);
     }
+    badge.textContent = texte || '📡 Comptage automatique actif';
+    badge.style.cssText = 'margin-top:12px;text-align:center;font-size:13px;font-weight:600;color:#4ade80;';
+}
+
+window.syncPasEtAfficher = function () {
+    if (window.Android && typeof window.Android.getStepsToday === 'function') {
+        try {
+            const steps = window.Android.getStepsToday();
+            if (steps > 0) { window.updateSteps(steps); } else { showSensorBadge(); }
+        } catch (e) { console.error(e); }
+    }
+};
+
+let syncInterval = null;
+function demarrerSyncAuto() {
+    if (syncInterval || !window.Android) return;
+    syncInterval = setInterval(window.syncPasEtAfficher, 20000);
+}
+
+function showCapteurAbsent() {
+    showSensorBadge('Aucun capteur de pas detecte sur ce telephone');
+    const b = document.getElementById('sensor-badge');
+    if (b) b.style.color = '#fb923c';
 }
 
 function getDayEmoji(dayName) {
