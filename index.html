@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <title>Pas à Pas — Carnet d'entraînement</title>
+</head>
+<body>
+    <div id="app">
+        <!-- Écran d'accueil / Aujourd'hui -->
+        <section id="screen-today" class="screen active">
+            <header class="header">
+                <div class="date-badge" id="current-date"></div>
+                <div class="week-badge" id="week-badge"></div>
+            </header>
+
+            <div class="steps-card">
+                <div class="steps-circle">
+                    <svg viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="#2a2a4a" stroke-width="12"/>
+                        <circle id="progress-ring" cx="100" cy="100" r="90" fill="none" stroke="url(#gradient)" stroke-width="12" stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="565.48"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#4ade80"/>
+                                <stop offset="100%" stop-color="#22d3ee"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="steps-info">
+                        <span id="steps-count" class="steps-number">0</span>
+                        <span id="steps-goal" class="steps-goal">/ 0 pas</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-plan" id="daily-plan">
+                <!-- Rempli dynamiquement -->
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn btn-primary" id="btn-add-steps">
+                    <span class="btn-icon">➕</span>
+                    Ajouter des pas
+                </button>
+                <button class="btn btn-secondary" id="btn-sync">
+                    <span class="btn-icon">🔄</span>
+                    Synchroniser
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-value" id="stat-week-avg">—</span>
+                    <span class="stat-label">Moy. semaine</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="stat-total">—</span>
+                    <span class="stat-label">Total</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="stat-streak">—</span>
+                    <span class="stat-label">Série 🔥</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Planning -->
+        <section id="screen-planning" class="screen">
+            <header class="header">
+                <h1>📅 Planning</h1>
+            </header>
+            <div id="planning-list" class="planning-list">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </section>
+
+        <!-- Historique / Bilan -->
+        <section id="screen-history" class="screen">
+            <header class="header">
+                <h1>📊 Bilans</h1>
+            </header>
+            <div id="history-list" class="history-list">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </section>
+
+        <!-- Paramètres -->
+        <section id="screen-settings" class="screen">
+            <header class="header">
+                <h1>⚙️ Paramètres</h1>
+            </header>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <label for="setting-goal">Objectif quotidien par défaut</label>
+                    <input type="number" id="setting-goal" value="8000" min="1000" max="50000" step="500">
+                </div>
+                <div class="setting-item">
+                    <label for="setting-unit">Unité de mesure</label>
+                    <select id="setting-unit">
+                        <option value="steps">Pas</option>
+                        <option value="km">Kilomètres</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="setting-stride">Longueur de pas (cm)</label>
+                    <input type="number" id="setting-stride" value="70" min="40" max="120" step="5">
+                </div>
+                <button class="btn btn-danger" id="btn-reset">Réinitialiser toutes les données</button>
+            </div>
+        </section>
+
+        <!-- Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-screen="today">
+                <span class="nav-icon">🏠</span>
+                <span>Aujourd'hui</span>
+            </button>
+            <button class="nav-btn" data-screen="planning">
+                <span class="nav-icon">📅</span>
+                <span>Planning</span>
+            </button>
+            <button class="nav-btn" data-screen="history">
+                <span class="nav-icon">📊</span>
+                <span>Bilans</span>
+            </button>
+            <button class="nav-btn" data-screen="settings">
+                <span class="nav-icon">⚙️</span>
+                <span>Réglages</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Modal ajout de pas -->
+    <div id="modal-add" class="modal">
+        <div class="modal-content">
+            <h2>Ajouter des pas</h2>
+            <input type="number" id="input-steps" placeholder="Nombre de pas" min="1" max="50000">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-add">Annuler</button>
+                <button class="btn btn-primary" id="btn-confirm-add">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal bilan -->
+    <div id="modal-bilan" class="modal">
+        <div class="modal-content">
+            <h2 id="bilan-title">Bilan de la semaine</h2>
+            <div class="bilan-stats" id="bilan-stats"></div>
+            <div class="bilan-form">
+                <label>Fatigue (0-10)</label>
+                <input type="range" id="bilan-fatigue" min="0" max="10" value="5">
+                <span id="bilan-fatigue-val">5</span>
+                <label>Douleur (0-10)</label>
+                <input type="range" id="bilan-douleur" min="0" max="10" value="0">
+                <span id="bilan-douleur-val">0</span>
+                <label>Note</label>
+                <textarea id="bilan-note" placeholder="Commentaires..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-bilan">Annuler</button>
+                <button class="btn btn-primary" id="btn-save-bilan">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="planning.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
