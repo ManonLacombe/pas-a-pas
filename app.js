@@ -30,6 +30,7 @@ function init() {
     setupModals();
     setupSettings();
     renderToday();
+    renderCheckin();
     // Si l'app tourne dans le natif Android, active la synchro du capteur.
     demarrerSyncAuto();
     window.syncPasEtAfficher();
@@ -206,6 +207,8 @@ function renderCheckin() {
         d.addEventListener('input', maj);
         f.dataset.bound = '1';
     }
+
+    majHint(jour.fatigue, jour.douleur);
 }
 
 /**
