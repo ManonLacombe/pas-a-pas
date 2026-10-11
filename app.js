@@ -8,10 +8,12 @@ const STORAGE_KEY = 'pasapas_data';
 let state = {
     steps: {},        // { "2026-10-12": 5000 }
     bilans: {},       // { "2026-W42": { fatigue: 5, douleur: 0, note: "..." } }
+    journal: {},      // { "2026-10-12": { fatigue: 5, douleur: 2 } }  -> adaptation J+1
     settings: {
         defaultGoal: 8000,
         unit: 'steps',
-        strideLength: 70  // cm
+        strideLength: 70,   // cm
+        weight: 65          // kg
     }
 };
 
@@ -73,7 +75,7 @@ function showScreen(screenId) {
     screens.forEach(s => s.classList.remove('active'));
     document.getElementById(`screen-${screenId}`).classList.add('active');
 
-    if (screenId === 'today') renderToday();
+    if (screenId === 'today') { renderToday(); renderCheckin(); }
     if (screenId === 'planning') renderPlanning();
     if (screenId === 'history') renderHistory();
 }
@@ -99,10 +101,23 @@ function renderToday() {
 
     // Pas du jour
     const todaySteps = state.steps[dateStr] || 0;
-    const goal = current ? current.day.targetSteps : state.settings.defaultGoal;
+
+    // Objectif du jour, adapte selon la fatigue / douleur d'hier
+    const veille = state.journal[formatDateKey(dateYesterday())] || null;
+    const adapt = getAdaptation(veille);
+    const baseGoal = current ? current.day.targetSteps : state.settings.defaultGoal;
+    const goal = Math.max(1000, Math.round(baseGoal * adapt.facteur / 100) * 100);
 
     document.getElementById('steps-count').textContent = todaySteps.toLocaleString('fr-FR');
     document.getElementById('steps-goal').textContent = `/ ${goal.toLocaleString('fr-FR')} pas`;
+
+    // Calories et distance
+    const kcal = getCalories(todaySteps, state.settings.weight, state.settings.strideLength);
+    const km = getDistanceKm(todaySteps, state.settings.strideLength);
+    const elKcal = document.getElementById('stat-calories');
+    const elKm = document.getElementById('stat-distance');
+    if (elKcal) elKcal.textContent = kcal.toLocaleString('fr-FR');
+    if (elKm) elKm.textContent = km.toFixed(1) + ' km';
 
     // Progression circulaire
     const ring = document.getElementById('progress-ring');
@@ -134,6 +149,82 @@ function renderToday() {
 
     // Statistiques
     renderStats();
+    renderAdaptation();
+}
+
+/**
+ * Bandeau d'adaptation : indique l'objectif retenu pour aujourd'hui
+ * et la raison (fatigue / douleur d'hier).
+ */
+function renderAdaptation() {
+    const banner = document.getElementById('adapt-banner');
+    if (!banner) return;
+
+    const veille = state.journal[formatDateKey(dateYesterday())];
+    const adapt = getAdaptation(veille);
+
+    if (!adapt.message) {
+        banner.hidden = true;
+        return;
+    }
+
+    banner.hidden = false;
+    banner.textContent = adapt.message;
+    banner.classList.toggle('ok', adapt.facteur >= 1);
+}
+
+/**
+ * Bilan du jour (fatigue / douleur) : pilote l'adaptation de demain.
+ */
+function renderCheckin() {
+    const dateStr = formatDateKey(new Date());
+    const jour = state.journal[dateStr] || { fatigue: 0, douleur: 0 };
+
+    const f = document.getElementById('slider-fatigue');
+    const d = document.getElementById('slider-douleur');
+    const of = document.getElementById('out-fatigue');
+    const od = document.getElementById('out-douleur');
+    if (!f || !d) return;
+
+    f.value = jour.fatigue;
+    d.value = jour.douleur;
+    of.textContent = jour.fatigue;
+    od.textContent = jour.douleur;
+
+    const maj = () => {
+        const fatigue = parseInt(f.value, 10);
+        const douleur = parseInt(d.value, 10);
+        of.textContent = fatigue;
+        od.textContent = douleur;
+        state.journal[dateStr] = { fatigue: fatigue, douleur: douleur };
+        saveData();
+        majHint(fatigue, douleur);
+    };
+
+    if (!f.dataset.bound) {
+        f.addEventListener('input', maj);
+        d.addEventListener('input', maj);
+        f.dataset.bound = '1';
+    }
+}
+
+/**
+ * Prévisualise l'effet sur le lendemain.
+ */
+function majHint(fatigue, douleur) {
+    const hint = document.getElementById('adapt-hint');
+    if (!hint) return;
+
+    const preview = getAdaptation({ fatigue: fatigue, douleur: douleur });
+    const current = getCurrentWeek(PLANNING, new Date());
+    const base = current ? current.day.targetSteps : state.settings.defaultGoal;
+    const cible = Math.max(1000, Math.round(base * preview.facteur / 100) * 100);
+
+    if (preview.facteur >= 1) {
+        hint.textContent = `Tout va bien : demain, objectif inchangé (~${base.toLocaleString('fr-FR')} pas).`;
+    } else {
+        hint.textContent = `Demain : objectif ramené à ~${cible.toLocaleString('fr-FR')} pas. ${preview.message}`;
+    }
 }
 
 /**
@@ -459,10 +550,20 @@ function setupSettings() {
     const goalInput = document.getElementById('setting-goal');
     const unitSelect = document.getElementById('setting-unit');
     const strideInput = document.getElementById('setting-stride');
+    const weightInput = document.getElementById('setting-weight');
 
     goalInput.value = state.settings.defaultGoal;
     unitSelect.value = state.settings.unit;
     strideInput.value = state.settings.strideLength;
+    if (weightInput) weightInput.value = state.settings.weight;
+
+    if (weightInput) {
+        weightInput.addEventListener('change', () => {
+            state.settings.weight = parseInt(weightInput.value, 10) || 65;
+            saveData();
+            renderToday();
+        });
+    }
 
     goalInput.addEventListener('change', () => {
         state.settings.defaultGoal = parseInt(goalInput.value, 10) || 8000;
@@ -485,10 +586,12 @@ function setupSettings() {
             state = {
                 steps: {},
                 bilans: {},
+                journal: {},
                 settings: {
                     defaultGoal: 8000,
                     unit: 'steps',
-                    strideLength: 70
+                    strideLength: 70,
+                    weight: 65
                 }
             };
             saveData();
@@ -511,6 +614,12 @@ function setupSettings() {
 /**
  * Utilitaires
  */
+function dateYesterday() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d;
+}
+
 function formatDateKey(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

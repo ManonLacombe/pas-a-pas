@@ -219,9 +219,74 @@ body {
 /* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     padding: 0 20px;
+}
+
+/* Bandeau d'adaptation */
+.adapt-banner {
+    margin: 16px 20px 0;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 1.5;
+    background: rgba(251, 146, 60, 0.12);
+    border: 1px solid rgba(251, 146, 60, 0.35);
+    color: var(--accent-orange);
+}
+
+.adapt-banner.ok {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.3);
+    color: var(--accent-green);
+}
+
+/* Bilan quotidien */
+.daily-checkin {
+    margin: 16px 20px 0;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.checkin-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+.slider-row {
+    display: grid;
+    grid-template-columns: 62px 1fr 32px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.slider-row label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.slider-row input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-orange);
+}
+
+.slider-row output {
+    font-size: 15px;
+    font-weight: 700;
+    text-align: right;
+    color: var(--accent-orange);
+}
+
+.checkin-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 6px;
 }
 
 .stat-item {

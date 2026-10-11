@@ -55,18 +55,44 @@
 
             <div class="stats-grid">
                 <div class="stat-item">
-                    <span class="stat-value" id="stat-week-avg">—</span>
-                    <span class="stat-label">Moy. semaine</span>
+                    <span class="stat-value" id="stat-calories">—</span>
+                    <span class="stat-label">kcal</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value" id="stat-total">—</span>
-                    <span class="stat-label">Total</span>
+                    <span class="stat-value" id="stat-distance">—</span>
+                    <span class="stat-label">Distance</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="stat-week-avg">—</span>
+                    <span class="stat-label">Moy. sem.</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-value" id="stat-streak">—</span>
                     <span class="stat-label">Série 🔥</span>
                 </div>
             </div>
+
+            <div class="adapt-banner" id="adapt-banner" hidden></div>
+
+            <section class="daily-checkin">
+                <h2 class="checkin-title">Comment vous sentez-vous aujourd'hui ?</h2>
+
+                <div class="slider-row">
+                    <label for="slider-fatigue">Fatigue</label>
+                    <input type="range" id="slider-fatigue" min="0" max="10" value="0">
+                    <output id="out-fatigue">0</output>
+                </div>
+
+                <div class="slider-row">
+                    <label for="slider-douleur">Douleur</label>
+                    <input type="range" id="slider-douleur" min="0" max="10" value="0">
+                    <output id="out-douleur">0</output>
+                </div>
+
+                <p class="checkin-hint" id="adapt-hint">
+                    Ces valeurs adaptent automatiquement l'objectif de demain.
+                </p>
+            </section>
         </section>
 
         <!-- Planning -->
@@ -109,6 +135,10 @@
                 <div class="setting-item">
                     <label for="setting-stride">Longueur de pas (cm)</label>
                     <input type="number" id="setting-stride" value="70" min="40" max="120" step="5">
+                </div>
+                <div class="setting-item">
+                    <label for="setting-weight">Poids (kg) — pour le calcul des calories</label>
+                    <input type="number" id="setting-weight" value="65" min="30" max="200" step="1">
                 </div>
                 <button class="btn btn-danger" id="btn-reset">Réinitialiser toutes les données</button>
             </div>

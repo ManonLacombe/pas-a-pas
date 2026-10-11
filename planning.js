@@ -19,7 +19,7 @@ const PHASES = [
         name: 'Mise en route',
         min: 3000,
         max: 4000,
-        weeks: 4,
+        weeks: 3,
         objective: "Marquer le rythme. 2–3 jours de trajet vers le bureau + roller 1h30 le samedi.",
         detail: "Dimanche : 30–45 min de marche facile si envie. Course 15–25 min facultative."
     },
@@ -27,7 +27,7 @@ const PHASES = [
         name: 'Base',
         min: 4000,
         max: 5000,
-        weeks: 8,
+        weeks: 9,
         objective: "Consolider l'habitude. 2–3 jours de bureau à pied, roller le samedi.",
         detail: "Petite marche + course facultative."
     },
@@ -35,7 +35,7 @@ const PHASES = [
         name: 'Montée',
         min: 5000,
         max: 7000,
-        weeks: 8,
+        weeks: 13,
         objective: "Allonger les sorties. Marche 30–45 min certains dimanches.",
         detail: "Le volume augmente sans jamais dépasser le repère du jour."
     },
@@ -43,15 +43,15 @@ const PHASES = [
         name: 'Endurance',
         min: 7000,
         max: 9000,
-        weeks: 4,
+        weeks: 13,
         objective: "45–60 min de marche. Test ponctuel 10–12k pas.",
-        detail: "Test de 12k à passer quand la récupération est bonne."
+        detail: "Marche 45–60 min ; test 12k quand la récupération est bonne."
     },
     {
         name: 'Gros volume',
         min: 9000,
         max: 11000,
-        weeks: 6,
+        weeks: 13,
         objective: "60–90 min de marche. Quelques journées à 12–16k pas.",
         detail: "Longues marches ; tests 12–16k pas."
     },
@@ -59,7 +59,7 @@ const PHASES = [
         name: 'Spécifique voyage',
         min: 11000,
         max: 13000,
-        weeks: 10,
+        weeks: 9,
         objective: "Blocs de 16–20k pas puis lendemain plus léger. Objectif : jours consécutifs.",
         detail: "Tests 16–20k et premiers enchaînements."
     },
@@ -67,7 +67,7 @@ const PHASES = [
         name: 'Préparation finale',
         min: 13000,
         max: 15000,
-        weeks: 6,
+        weeks: 3,
         objective: "Simulation 18k → 20k → 15k, puis 20k → 22k → 18k.",
         detail: "Simulations 18–22k sur plusieurs jours. Test 20–25k : on vise la répétition, pas le record."
     }
@@ -178,6 +178,71 @@ function generateDays(weekStart, phase) {
  */
 function getPhase(index) {
     return PHASES[Math.min(index + 1, PHASES.length - 1)];
+}
+
+/**
+ * Adapte l'objectif du jour selon la fatigue et la douleur d'hier.
+ *
+ * Regle du carnet : « Une douleur articulaire, une douleur qui augmente,
+ * une fatigue anormale = reduction du volume et recuperation. »
+ *
+ * @param {{fatigue:number, douleur:number}|undefined} veille bilan d'hier
+ * @returns {{facteur:number, message:string|null}}
+ */
+function getAdaptation(veille) {
+    if (!veille) return { facteur: 1, message: null };
+
+    const { fatigue = 0, douleur = 0 } = veille;
+    let facteur = 1;
+    const raisons = [];
+
+    // La douleur est le signal le plus fort : elle plafonne vite.
+    if (douleur >= 7) {
+        facteur = 0.5;
+        raisons.push('douleur importante');
+    } else if (douleur >= 4) {
+        facteur = Math.min(facteur, 0.75);
+        raisons.push('douleur modérée');
+    }
+
+    if (fatigue >= 8) {
+        facteur = Math.min(facteur, 0.6);
+        raisons.push('fatigue élevée');
+    } else if (fatigue >= 5) {
+        facteur = Math.min(facteur, 0.85);
+        raisons.push('fatigue à surveiller');
+    }
+
+    if (facteur === 1) {
+        return {
+            facteur: 1,
+            message: 'Objectif normal : tu récupères bien, on continue sur la progression prévue.'
+        };
+    }
+
+    const reduction = Math.round((1 - facteur) * 100);
+    return {
+        facteur: facteur,
+        message: `Journée allégée : objectif réduit de ${reduction} % (${raisons.join(' + ')} d'hier).`
+    };
+}
+
+/**
+ * Calories brûlées pour un nombre de pas.
+ *
+ * Marche ≈ 0,78 kcal par kg et par kilomètre.
+ * distance_km = pas x longueur_de_pas (cm) / 100 000
+ */
+function getCalories(steps, poidsKg = 65, longueurPasCm = 70) {
+    const distanceKm = (steps * longueurPasCm) / 100000;
+    return Math.round(distanceKm * poidsKg * 0.78);
+}
+
+/**
+ * Distance parcourue en kilometres.
+ */
+function getDistanceKm(steps, longueurPasCm = 70) {
+    return (steps * longueurPasCm) / 100000;
 }
 
 function formatK(n) {
