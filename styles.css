@@ -344,6 +344,14 @@ body {
     color: var(--accent-cyan);
 }
 
+.week-detail {
+    margin-top: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
 /* History */
 .history-list {
     padding: 0 20px;

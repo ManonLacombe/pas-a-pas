@@ -1,89 +1,109 @@
 /**
- * Générateur de planning basé sur le carnet d'entraînement 25 000 pas
- * Adapté pour commencer le 12 octobre 2026
+ * Générateur de planning — Carnet d'entraînement 25 000 pas
+ *
+ * Paliers repris du carnet d'origine (carnet_entrainement_25000_pas).
+ * Progression sur 7 paliers, du 12 octobre 2026 jusqu'au voyage (déc. 2027).
  */
 
 const TRAINING_START = new Date(2026, 9, 12); // 12 octobre 2026
 
-// Structure type d'une semaine du carnet
-const WEEK_TYPES = {
-    ENDURANCE: {
-        name: "Endurance",
-        minSteps: 7000,
-        maxSteps: 9000,
-        rangeLabel: "7–9k pas/j",
-        objective: "45–60 min de marche. Test ponctuel 10–12k pas."
+/**
+ * Les 7 paliers du carnet, avec leur repère quotidien (min/max en pas).
+ *
+ * Le point de départ réel est d'environ 2 600 pas/jour (18 000/semaine,
+ * avant les trajets domicile-travail). Le premier palier démarre donc
+ * à 3 000 pas, pas à 7 000.
+ */
+const PHASES = [
+    {
+        name: 'Mise en route',
+        min: 3000,
+        max: 4000,
+        weeks: 4,
+        objective: "Marquer le rythme. 2–3 jours de trajet vers le bureau + roller 1h30 le samedi.",
+        detail: "Dimanche : 30–45 min de marche facile si envie. Course 15–25 min facultative."
     },
-    GROS_VOLUME: {
-        name: "Gros volume",
-        minSteps: 9000,
-        maxSteps: 11000,
-        rangeLabel: "9–11k pas/j",
-        objective: "60–90 min de marche. Quelques journées 12–16k pas."
+    {
+        name: 'Base',
+        min: 4000,
+        max: 5000,
+        weeks: 8,
+        objective: "Consolider l'habitude. 2–3 jours de bureau à pied, roller le samedi.",
+        detail: "Petite marche + course facultative."
     },
-    SPECIFIQUE: {
-        name: "Spécifique voyage",
-        minSteps: 11000,
-        maxSteps: 13000,
-        rangeLabel: "11–13k pas/j",
-        objective: "Blocs 16–20k pas + lendemain plus léger. Objectif : jours consécutifs."
+    {
+        name: 'Montée',
+        min: 5000,
+        max: 7000,
+        weeks: 8,
+        objective: "Allonger les sorties. Marche 30–45 min certains dimanches.",
+        detail: "Le volume augmente sans jamais dépasser le repère du jour."
     },
-    FINALE: {
-        name: "Préparation finale",
-        minSteps: 13000,
-        maxSteps: 15000,
-        rangeLabel: "13–15k pas/j",
-        objective: "Simulation 18k → 20k → 15k."
+    {
+        name: 'Endurance',
+        min: 7000,
+        max: 9000,
+        weeks: 4,
+        objective: "45–60 min de marche. Test ponctuel 10–12k pas.",
+        detail: "Test de 12k à passer quand la récupération est bonne."
+    },
+    {
+        name: 'Gros volume',
+        min: 9000,
+        max: 11000,
+        weeks: 6,
+        objective: "60–90 min de marche. Quelques journées à 12–16k pas.",
+        detail: "Longues marches ; tests 12–16k pas."
+    },
+    {
+        name: 'Spécifique voyage',
+        min: 11000,
+        max: 13000,
+        weeks: 10,
+        objective: "Blocs de 16–20k pas puis lendemain plus léger. Objectif : jours consécutifs.",
+        detail: "Tests 16–20k et premiers enchaînements."
+    },
+    {
+        name: 'Préparation finale',
+        min: 13000,
+        max: 15000,
+        weeks: 6,
+        objective: "Simulation 18k → 20k → 15k, puis 20k → 22k → 18k.",
+        detail: "Simulations 18–22k sur plusieurs jours. Test 20–25k : on vise la répétition, pas le record."
     }
-};
-
-// Progression des semaines (inspirée du document)
-const PROGRESSION = [
-    // Phase 1 : Endurance (semaines 1-3)
-    { type: "ENDURANCE", weeks: 3 },
-    // Phase 2 : Gros volume (semaines 4-12)
-    { type: "GROS_VOLUME", weeks: 9 },
-    // Phase 3 : Spécifique voyage (semaines 13-22)
-    { type: "SPECIFIQUE", weeks: 10 },
-    // Phase 4 : Préparation finale (semaines 23-24)
-    { type: "FINALE", weeks: 2 }
 ];
 
-const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-const DAYS_FULL = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const DAYS_FULL = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 /**
- * Génère le planning complet à partir du 12 octobre 2026
+ * Construit le planning complet à partir du 12 octobre 2026.
  */
 function generatePlanning(startDate) {
     const weeks = [];
-    let currentDate = new Date(startDate);
+    let current = new Date(startDate);
     let weekNum = 1;
 
-    for (const phase of PROGRESSION) {
-        const weekType = WEEK_TYPES[phase.type];
-
+    for (const phase of PHASES) {
         for (let w = 0; w < phase.weeks; w++) {
-            const weekStart = new Date(currentDate);
-            const weekEnd = new Date(currentDate);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-
-            const days = generateDays(weekStart, weekType);
+            const start = new Date(current);
+            const end = new Date(current);
+            end.setDate(end.getDate() + 6);
 
             weeks.push({
                 number: weekNum,
-                phase: weekType.name,
-                phaseType: phase.type,
-                rangeLabel: weekType.rangeLabel,
-                objective: weekType.objective,
-                minSteps: weekType.minSteps,
-                maxSteps: weekType.maxSteps,
-                start: weekStart,
-                end: weekEnd,
-                days: days
+                phase: phase.name,
+                minSteps: phase.min,
+                maxSteps: phase.max,
+                rangeLabel: `${formatK(phase.min)}–${formatK(phase.max)} pas/j`,
+                objective: phase.objective,
+                detail: phase.detail,
+                start: start,
+                end: end,
+                days: generateDays(start, phase)
             });
 
-            currentDate.setDate(currentDate.getDate() + 7);
+            current.setDate(current.getDate() + 7);
             weekNum++;
         }
     }
@@ -92,53 +112,52 @@ function generatePlanning(startDate) {
 }
 
 /**
- * Génère les jours d'une semaine type
+ * Semaine type du carnet. Les jours de bureau sont les jours privilégiés
+ * pour marcher ; les autres servent au renforcement ou au repos.
+ *
+ * @param {number} weekNumber numéro de semaine (1 = première)
  */
-function generateDays(weekStart, weekType) {
+function generateDays(weekStart, phase) {
     const days = [];
+    const min = phase.min;
+    const max = phase.max;
+    const span = max - min;
+
+    // Progression douce à l'intérieur de la semaine : on commence au bas
+    // du repère et on finit plus haut, pour ne pas Sauter d'un coup.
+    const step = Math.round(span / 6);
 
     for (let i = 0; i < 7; i++) {
         const date = new Date(weekStart);
         date.setDate(date.getDate() + i);
 
-        let task, targetSteps;
+        // Objectif du jour : palier croissant selon le jour de la semaine.
+        let target = min + step * i;
 
+        let task;
         switch (i) {
             case 0: // Lundi
-                task = "Marche facile + mobilité 10 min";
-                targetSteps = weekType.minSteps;
+                task = 'Marche facile + mobilité 10 min';
                 break;
             case 1: // Mardi
-                task = "Bureau : 30 min aller + 30 min retour ou marche 20-30 min";
-                targetSteps = weekType.minSteps + 500;
+                task = 'Bureau si présent : 30 min aller + 30 min retour. Sinon marche facile 20–30 min';
                 break;
             case 2: // Mercredi
-                task = "Renforcement A + 10-20 min facile";
-                targetSteps = weekType.minSteps;
+                task = 'Renforcement A (20–30 min) + 10–20 min de marche facile si possible';
                 break;
             case 3: // Jeudi
-                task = "Bureau : 30 min aller + 30 min retour ou marche 20-30 min";
-                targetSteps = weekType.minSteps + 500;
+                task = 'Bureau si présent : 30 min aller + 30 min retour. Sinon marche facile 20–30 min';
                 break;
             case 4: // Vendredi
-                task = "Bureau : 30 min aller + 30 min retour ou marche 20-30 min";
-                targetSteps = weekType.minSteps + 500;
+                task = 'Bureau si présent : 30 min aller + 30 min retour. Sinon marche facile 20–30 min';
                 break;
             case 5: // Samedi
-                if (weekType === WEEK_TYPES.FINALE) {
-                    task = "Marche longue / simulation";
-                    targetSteps = weekType.maxSteps + 2000;
-                } else if (weekType === WEEK_TYPES.SPECIFIQUE) {
-                    task = "Marche longue / simulation";
-                    targetSteps = weekType.maxSteps + 3000;
-                } else {
-                    task = "Roller 1h30 ou marche longue";
-                    targetSteps = weekType.maxSteps + 2000;
-                }
+                task = 'Roller 1h30';
+                target = max; // le samedi est le point haut de la semaine
                 break;
             case 6: // Dimanche
-                task = "Renforcement B léger ou marche longue selon fatigue";
-                targetSteps = weekType.minSteps + 1000;
+                task = 'Renforcement B léger, ou marche longue selon fatigue';
+                target = Math.round((min + max) / 2); // dimanche plus doux
                 break;
         }
 
@@ -147,7 +166,7 @@ function generateDays(weekStart, weekType) {
             fullName: DAYS_FULL[i],
             date: date,
             task: task,
-            targetSteps: targetSteps
+            targetSteps: Math.round(target / 100) * 100 // arrondi au centieme de k
         });
     }
 
@@ -155,25 +174,31 @@ function generateDays(weekStart, weekType) {
 }
 
 /**
- * Trouve la semaine et le jour actuels
+ * Phase immédiatement supérieure : sert à la simulation (18k → 20k → 15k).
+ */
+function getPhase(index) {
+    return PHASES[Math.min(index + 1, PHASES.length - 1)];
+}
+
+function formatK(n) {
+    return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1).replace('.', ',') + 'k';
+}
+
+/**
+ * Trouve la semaine et le jour courants dans le planning.
  */
 function getCurrentWeek(planning, date = new Date()) {
     for (const week of planning) {
         if (date >= week.start && date <= week.end) {
-            const dayIndex = date.getDay();
-            const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Lundi = 0
-            return {
-                week: week,
-                day: week.days[adjustedIndex],
-                dayIndex: adjustedIndex
-            };
+            const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1;
+            return { week: week, day: week.days[dayIndex], dayIndex: dayIndex };
         }
     }
     return null;
 }
 
 /**
- * Calcule le numéro de semaine ISO
+ * Numéro de semaine ISO.
  */
 function getWeekNumber(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -183,28 +208,17 @@ function getWeekNumber(date) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
-/**
- * Formate une date en français
- */
 function formatDate(date) {
     return date.toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
 }
 
-/**
- * Formate une plage de dates
- */
 function formatDateRange(start, end) {
-    const startStr = start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-    const endStr = end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-    return `${startStr} – ${endStr}`;
+    const s = start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const e = end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    return `${s} – ${e}`;
 }
 
-/**
- * Génère le planning global
- */
+/** Planning global */
 const PLANNING = generatePlanning(TRAINING_START);

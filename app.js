@@ -282,6 +282,7 @@ function renderPlanning() {
                 <div class="week-range">${formatDateRange(week.start, week.end)} · ${week.rangeLabel}</div>
                 <div class="week-schedule">${daysHtml}</div>
                 <div class="week-objective">${week.objective}</div>
+                <div class="week-detail">${week.detail}</div>
             </div>
         `;
     }).join('');
