@@ -184,7 +184,7 @@ function renderWeekStrip() {
         const steps = state.steps[key] || 0;
 
         // Objectif ajuste si la veille indiquait fatigue ou douleur.
-        const veille = state.journal[formatDateKey(dateShift(day.date, -1))];
+        const veille = state.journal[dateShift(day.date, -1)];
         const cible = Math.max(1000,
             Math.round(day.targetSteps * getAdaptation(veille).facteur / 100) * 100);
 
