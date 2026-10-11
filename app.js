@@ -151,6 +151,67 @@ function renderToday() {
     // Statistiques
     renderStats();
     renderAdaptation();
+    renderWeekStrip();
+}
+
+/**
+ * Bandeau des 7 jours de la semaine en cours, avec l'etat de chaque jour :
+ * - jour actuel mis en avant
+ * - nombre de pas deja parcourus
+ * - coche si l'objectif est atteint
+ */
+function renderWeekStrip() {
+    const conteneur = document.getElementById('week-days');
+    const titre = document.getElementById('week-strip-title');
+    if (!conteneur) return;
+
+    const current = getCurrentWeek(PLANNING, new Date());
+
+    if (!current) {
+        titre.textContent = 'Cette semaine';
+        conteneur.innerHTML = '<p class="week-empty">Hors planning — du '
+            + formatDateRange(PLANNING[0].start, PLANNING[0].end) + ' au '
+            + formatDateRange(PLANNING[PLANNING.length - 1].start, PLANNING[PLANNING.length - 1].end)
+            + '.</p>';
+        return;
+    }
+
+    const sem = current.week;
+    titre.textContent = 'Semaine ' + sem.number + ' · ' + sem.rangeLabel;
+
+    conteneur.innerHTML = sem.days.map((day, i) => {
+        const key = formatDateKey(day.date);
+        const steps = state.steps[key] || 0;
+
+        // Objectif ajuste si la veille indiquait fatigue ou douleur.
+        const veille = state.journal[formatDateKey(dateShift(day.date, -1))];
+        const cible = Math.max(1000,
+            Math.round(day.targetSteps * getAdaptation(veille).facteur / 100) * 100);
+
+        const atteint = steps >= cible;
+        const classes = ['week-day'];
+        if (i === current.dayIndex) classes.push('aujourdhui');
+        if (steps > 0) classes.push('fait');
+        if (atteint) classes.push('atteint');
+
+        return `
+            <div class="${classes.join(' ')}" data-date="${key}">
+                <span class="wd-nom">${day.name}</span>
+                <span class="wd-pas">${steps > 0 ? steps.toLocaleString('fr-FR') : '—'}</span>
+                <span class="wd-obj">${cible >= 1000 ? Math.round(cible / 1000 * 10) / 10 + 'k' : cible}</span>
+                <span class="wd-etat">${atteint ? '✓' : (steps > 0 ? '·' : '')}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Decale une date de n jours et renvoie la cle au format AAAA-MM-JJ.
+ */
+function dateShift(date, n) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + n);
+    return formatDateKey(d);
 }
 
 /**
