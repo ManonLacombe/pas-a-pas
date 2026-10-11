@@ -133,6 +133,38 @@ function renderToday() {
     renderStats();
 }
 
+/**
+ * Point d'entree appele par l'application Android native.
+ * Le telephone mesure les pas en arriere-plan et pousse la valeur ici.
+ */
+window.updateSteps = function (steps) {
+    const dateStr = formatDateKey(new Date());
+    const current = state.steps[dateStr] || 0;
+
+    // On ne remplace que si le capteur natif a mesure davantage.
+    if (steps > current) {
+        state.steps[dateStr] = steps;
+        saveData();
+        renderToday();
+        showSensorBadge();
+    }
+};
+
+/**
+ * Indique visuellement que le comptage est automatique.
+ */
+function showSensorBadge() {
+    let badge = document.getElementById('sensor-badge');
+    if (!badge) {
+        const card = document.querySelector('.steps-card');
+        if (!card) return;
+        badge = document.createElement('div');
+        badge.id = 'sensor-badge';
+        badge.textContent = '📡 Comptage automatique actif';
+        card.appendChild(badge);
+    }
+}
+
 function getDayEmoji(dayName) {
     const emojis = {
         'Lun': '🌅', 'Mar': '🚶', 'Mer': '💪', 'Jeu': '🏢',

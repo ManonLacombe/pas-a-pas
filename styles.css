@@ -246,6 +246,15 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* Badge du capteur natif */
+#sensor-badge {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
 /* Planning */
 .planning-list {
     padding: 0 20px;
