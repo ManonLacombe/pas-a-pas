@@ -41,9 +41,29 @@ function init() {
  */
 function loadData() {
     const saved = localStorage.getItem(STORAGE_KEY);
+
+    // Repart toujours d'un etat propre, sinon des valeurs d'une session
+    // precedente subsistent en memoire si le stockage a ete vide.
+    state = {
+        steps: {},
+        bilans: {},
+        journal: {},
+        settings: {
+            defaultGoal: 8000,
+            unit: 'steps',
+            strideLength: 70,
+            weight: 65
+        }
+    };
+
     if (saved) {
         try {
-            state = { ...state, ...JSON.parse(saved) };
+            const data = JSON.parse(saved);
+            state = {
+                ...state,
+                ...data,
+                settings: { ...state.settings, ...(data.settings || {}) }
+            };
         } catch (e) {
             console.error('Erreur de chargement:', e);
         }
