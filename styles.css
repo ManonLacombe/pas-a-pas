@@ -303,6 +303,36 @@ body {
     line-height: 1.5;
 }
 
+/* Correction manuelle du jour */
+.fix-row {
+    padding: 0 20px;
+    margin: -8px 0 16px;
+    text-align: center;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px;
+}
+
+.btn-reset-day {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: var(--radius);
+    color: var(--accent-red);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 /* Bandeau d'adaptation */
 .adapt-banner {
     margin: 16px 20px 0;

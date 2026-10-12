@@ -530,9 +530,21 @@ function renderHistory() {
 function setupModals() {
     // Ajout de pas
     document.getElementById('btn-add-steps').addEventListener('click', () => {
-        document.getElementById('modal-add').classList.add('active');
-        document.getElementById('input-steps').value = '';
-        document.getElementById('input-steps').focus();
+        ouvrirModalePas('ajouter');
+    });
+
+    // Correction du compteur du jour (remplacement au lieu d'ajout)
+    document.getElementById('btn-fix-today').addEventListener('click', () => {
+        ouvrirModalePas('corriger');
+    });
+
+    // Remise a zero du jour
+    document.getElementById('btn-reset-day').addEventListener('click', () => {
+        const dateStr = formatDateKey(new Date());
+        delete state.steps[dateStr];
+        saveData();
+        document.getElementById('modal-add').classList.remove('active');
+        renderToday();
     });
 
     document.getElementById('btn-cancel-add').addEventListener('click', () => {
@@ -542,17 +554,23 @@ function setupModals() {
     document.getElementById('btn-confirm-add').addEventListener('click', () => {
         const input = document.getElementById('input-steps');
         const value = parseInt(input.value, 10);
+        const dateStr = formatDateKey(new Date());
 
-        if (value > 0 && value <= 50000) {
-            const today = new Date();
-            const key = formatDateKey(today);
-            state.steps[key] = (state.steps[key] || 0) + value;
-            saveData();
-            document.getElementById('modal-add').classList.remove('active');
-            renderToday();
-        } else {
-            alert('Veuillez entrer un nombre de pas valide (1 à 50 000)');
+        if (Number.isNaN(value) || value < 0 || value > 50000) {
+            alert('Veuillez entrer un nombre de pas valide (0 à 50 000)');
+            return;
         }
+
+        if (modaleMode === 'corriger') {
+            // Remplace la valeur du jour au lieu de l'incrementer.
+            state.steps[dateStr] = value;
+        } else {
+            state.steps[dateStr] = (state.steps[dateStr] || 0) + value;
+        }
+
+        saveData();
+        document.getElementById('modal-add').classList.remove('active');
+        renderToday();
     });
 
     // Bilan
@@ -626,6 +644,33 @@ function saveBilan() {
     saveData();
     document.getElementById('modal-bilan').classList.remove('active');
     renderHistory();
+}
+
+/**
+ * Ouvre la modale des pas.
+ * mode 'ajouter'  -> incremente la valeur du jour
+ * mode 'corriger' -> remplace la valeur du jour
+ */
+let modaleMode = 'ajouter';
+
+function ouvrirModalePas(mode) {
+    modaleMode = mode;
+    const input = document.getElementById('input-steps');
+    const titre = document.getElementById('modal-add-title');
+    const bouton = document.getElementById('btn-confirm-add');
+
+    if (mode === 'corriger') {
+        titre.textContent = 'Corriger le compteur du jour';
+        input.value = state.steps[formatDateKey(new Date())] || 0;
+        bouton.textContent = 'Remplacer';
+    } else {
+        titre.textContent = 'Ajouter des pas';
+        input.value = '';
+        bouton.textContent = 'Ajouter';
+    }
+
+    document.getElementById('modal-add').classList.add('active');
+    input.focus();
 }
 
 /**

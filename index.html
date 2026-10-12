@@ -60,6 +60,10 @@
                 </button>
             </div>
 
+            <div class="fix-row">
+                <button class="btn-link" id="btn-fix-today">Corriger le compteur du jour</button>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-item">
                     <span class="stat-value" id="stat-calories">—</span>
@@ -175,8 +179,9 @@
     <!-- Modal ajout de pas -->
     <div id="modal-add" class="modal">
         <div class="modal-content">
-            <h2>Ajouter des pas</h2>
-            <input type="number" id="input-steps" placeholder="Nombre de pas" min="1" max="50000">
+            <h2 id="modal-add-title">Ajouter des pas</h2>
+            <input type="number" id="input-steps" placeholder="Nombre de pas" min="0" max="50000">
+            <button class="btn-reset-day" id="btn-reset-day">Remettre à 0 pour aujourd'hui</button>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="btn-cancel-add">Annuler</button>
                 <button class="btn btn-primary" id="btn-confirm-add">Ajouter</button>
@@ -206,8 +211,8 @@
         </div>
     </div>
 
-    <!--?v=5 : force le rechargement apres une mise a jour du planning -->
-    <script src="planning.js?v=5"></script>
-    <script src="app.js?v=5"></script>
+    <!--?v=6 : force le rechargement apres une mise a jour -->
+    <script src="planning.js?v=6"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>
