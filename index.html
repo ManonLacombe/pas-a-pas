@@ -42,6 +42,42 @@
                 <!-- Rempli dynamiquement -->
             </div>
 
+            <section class="seance-card" id="seance-card" hidden>
+                <div class="seance-head">
+                    <h2 class="seance-title" id="seance-title"></h2>
+                    <span class="seance-duree" id="seance-duree"></span>
+                </div>
+                <table class="seance-table">
+                    <thead>
+                        <tr>
+                            <th class="c-check"></th>
+                            <th>Exercice</th>
+                            <th class="c-rep">Rép.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seance-exercices"></tbody>
+                </table>
+                <p class="seance-repos" id="seance-repos"></p>
+                <label class="seance-progression">
+                    <input type="checkbox" id="check-progression">
+                    J'ai ajouté une série ou de la charge aujourd'hui
+                </label>
+            </section>
+
+            <section class="roller-card" id="roller-card">
+                <div class="roller-row">
+                    <div class="roller-info">
+                        <strong>Roller / séance longue</strong>
+                        <span id="roller-detail">1 h 30 le samedi</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="check-roller-veille">
+                        <span class="slider-box"></span>
+                    </label>
+                </div>
+                <p class="roller-hint">Coche si tu l'as fait hier soir : l'objectif d'aujourd'hui est réduit.</p>
+            </section>
+
             <section class="week-strip">
                 <h2 class="week-strip-title" id="week-strip-title">Cette semaine</h2>
                 <div class="week-days" id="week-days">
@@ -211,8 +247,9 @@
         </div>
     </div>
 
-    <!--?v=6 : force le rechargement apres une mise a jour -->
-    <script src="planning.js?v=6"></script>
-    <script src="app.js?v=6"></script>
+    <!--?v=7 : force le rechargement apres une mise a jour -->
+    <script src="planning.js?v=7"></script>
+    <script src="renfo.js?v=7"></script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>

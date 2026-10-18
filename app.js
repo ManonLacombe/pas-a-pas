@@ -8,7 +8,9 @@ const STORAGE_KEY = 'pasapas_data';
 let state = {
     steps: {},        // { "2026-10-12": 5000 }
     bilans: {},       // { "2026-W42": { fatigue: 5, douleur: 0, note: "..." } }
-    journal: {},      // { "2026-10-12": { fatigue: 5, douleur: 2 } }  -> adaptation J+1
+    journal: {},      // { "2026-10-12": { fatigue: 5, douleur: 2 } }
+    seances: {},      // { "2026-10-14": { A: ["Squats","Pont fessier"], prog: false } }
+    roller: {},       // { "2026-10-17": true }  -> roller fait ce jour-la
     settings: {
         defaultGoal: 8000,
         unit: 'steps',
@@ -48,6 +50,8 @@ function loadData() {
         steps: {},
         bilans: {},
         journal: {},
+        seances: {},
+        roller: {},
         settings: {
             defaultGoal: 8000,
             unit: 'steps',
@@ -123,11 +127,23 @@ function renderToday() {
     // Pas du jour
     const todaySteps = state.steps[dateStr] || 0;
 
-    // Objectif du jour, adapte selon la fatigue / douleur d'hier
+    // Objectif du jour : repere du planning, puis ajustements
     const veille = state.journal[formatDateKey(dateYesterday())] || null;
     const adapt = getAdaptation(veille);
     const baseGoal = current ? current.day.targetSteps : state.settings.defaultGoal;
-    const goal = Math.max(1000, Math.round(baseGoal * adapt.facteur / 100) * 100);
+
+    const ajustement = getObjectifAjuste(baseGoal, {
+        renfoA: estSeanceFaiteToday('A'),
+        renfoB: estSeanceFaiteToday('B'),
+        rollerVeille: estRollerFait(dateYesterday())
+    });
+
+    const motifs = [];
+    if (adapt.facteur < 1) motifs.push(adapt.message);
+    if (ajustement.motifs.length) {
+        motifs.push('Objectif réduit : ' + ajustement.motifs.join(', ') + '.');
+    }
+    const goal = ajustement.objectif;
 
     document.getElementById('steps-count').textContent = todaySteps.toLocaleString('fr-FR');
     document.getElementById('steps-goal').textContent = `/ ${goal.toLocaleString('fr-FR')} pas`;
@@ -170,8 +186,90 @@ function renderToday() {
 
     // Statistiques
     renderStats();
-    renderAdaptation();
+    renderAdaptation(motifs);
     renderWeekStrip();
+    renderSeance();
+}
+
+/**
+ * La seance A ou B est-elle cochee pour aujourd'hui ?
+ */
+function estSeanceFaiteToday(lettre) {
+    const jour = state.seances[formatDateKey(new Date())];
+    if (!jour || !jour[lettre]) return false;
+    const nb = jour[lettre].length || 0;
+    const total = (lettre === 'A' ? SEANCE_A : SEANCE_B).length;
+    return nb >= total && total > 0;
+}
+
+/**
+ * Le roller a-t-il ete fait ce jour-la ?
+ */
+function estRollerFait(date) {
+    return !!state.roller[formatDateKey(date)];
+}
+
+/**
+ * Affiche la seance de renforcement du jour, avec la coche par exercice.
+ */
+function renderSeance() {
+    const carte = document.getElementById('seance-card');
+    if (!carte) return;
+
+    const jourNom = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+    const seance = getSeanceDuJour(jourNom);
+
+    if (!seance) {
+        carte.hidden = true;
+        return;
+    }
+    carte.hidden = false;
+
+    document.getElementById('seance-title').textContent = seance.titre;
+    document.getElementById('seance-duree').textContent = seance.duree;
+    document.getElementById('seance-repos').textContent = seance.repos;
+
+    const key = formatDateKey(new Date());
+    const jour = state.seances[key] || {};
+    const faits = jour[seance.lettre] || [];
+    const prog = !!jour.prog;
+
+    document.getElementById('seance-exercices').innerHTML = seance.exercices.map(ex => {
+        const fait = faits.includes(ex.nom);
+        const reps = prog ? ex.cible : ex.debut;
+        return `
+            <tr class="${fait ? 'fait' : ''}">
+                <td class="c-check">
+                    <input type="checkbox" class="seance-check" data-ex="${ex.nom}" ${fait ? 'checked' : ''}>
+                </td>
+                <td>
+                    <span class="exercice-nom">${ex.nom}</span>
+                    <span class="exercice-concigne">${ex.consigne}</span>
+                </td>
+                <td class="c-rep">${reps}</td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('check-progression').checked = prog;
+}
+
+/**
+ * Renvoie les motifs d'ajustement pour le bandeau.
+ */
+function renderAdaptation(motifs) {
+    const banner = document.getElementById('adapt-banner');
+    if (!banner) return;
+
+    const liste = Array.isArray(motifs) ? motifs : [];
+    if (liste.length === 0) {
+        banner.hidden = true;
+        return;
+    }
+
+    banner.hidden = false;
+    banner.textContent = liste.join(' ');
+    banner.classList.remove('ok');
 }
 
 /**
@@ -232,27 +330,6 @@ function dateShift(date, n) {
     const d = new Date(date);
     d.setDate(d.getDate() + n);
     return formatDateKey(d);
-}
-
-/**
- * Bandeau d'adaptation : indique l'objectif retenu pour aujourd'hui
- * et la raison (fatigue / douleur d'hier).
- */
-function renderAdaptation() {
-    const banner = document.getElementById('adapt-banner');
-    if (!banner) return;
-
-    const veille = state.journal[formatDateKey(dateYesterday())];
-    const adapt = getAdaptation(veille);
-
-    if (!adapt.message) {
-        banner.hidden = true;
-        return;
-    }
-
-    banner.hidden = false;
-    banner.textContent = adapt.message;
-    banner.classList.toggle('ok', adapt.facteur >= 1);
 }
 
 /**
@@ -573,7 +650,31 @@ function setupModals() {
         renderToday();
     });
 
-    // Bilan
+    // Cases du renforcement
+    document.getElementById('seance-exercices').addEventListener('change', (e) => {
+        const box = e.target.closest('.seance-check');
+        if (!box) return;
+        cocherExercice(box.dataset.ex, box.checked, e.target);
+    });
+
+    document.getElementById('check-progression').addEventListener('change', (e) => {
+        const key = formatDateKey(new Date());
+        if (!state.seances[key]) state.seances[key] = {};
+        state.seances[key].prog = e.target.checked;
+        saveData();
+        renderSeance();
+        renderToday();
+    });
+
+    // Roller de la veille
+    document.getElementById('check-roller-veille').addEventListener('change', (e) => {
+        const key = formatDateKey(dateYesterday());
+        state.roller[key] = e.target.checked;
+        saveData();
+        renderToday();
+    });
+
+    // Bilan hebdomadaire
     document.getElementById('btn-cancel-bilan').addEventListener('click', () => {
         document.getElementById('modal-bilan').classList.remove('active');
     });
@@ -582,7 +683,7 @@ function setupModals() {
         saveBilan();
     });
 
-    // Sliders bilan
+    // Curseurs du bilan
     document.getElementById('bilan-fatigue').addEventListener('input', (e) => {
         document.getElementById('bilan-fatigue-val').textContent = e.target.value;
     });
@@ -591,14 +692,53 @@ function setupModals() {
         document.getElementById('bilan-douleur-val').textContent = e.target.value;
     });
 
-    // Fermer modals en cliquant en dehors
+    // Fermer une modale en touchant en dehors
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
+            if (e.target === modal) modal.classList.remove('active');
         });
     });
+}
+
+/**
+ * Coche ou decoche un exercice du programme du jour.
+ */
+function cocherExercice(nom, fait, box) {
+    const key = formatDateKey(new Date());
+    const jourNom = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+    const seance = getSeanceDuJour(jourNom);
+    if (!seance) return;
+
+    if (!state.seances[key]) state.seances[key] = {};
+    if (!state.seances[key][seance.lettre]) state.seances[key][seance.lettre] = [];
+
+    const liste = state.seances[key][seance.lettre];
+    const i = liste.indexOf(nom);
+    if (fait && i < 0) liste.push(nom);
+    if (!fait && i >= 0) liste.splice(i, 1);
+
+    saveData();
+
+    const ligne = box.closest('tr');
+    if (ligne) ligne.classList.toggle('fait', fait);
+
+    // Recalcule l'objectif : la seance est-elle terminee ?
+    const total = seance.exercices.length;
+    if (liste.length >= total || liste.length === 0) {
+        renderToday();
+    } else {
+        const el = document.getElementById('steps-goal');
+        if (el) {
+            const base = (getCurrentWeek(PLANNING, new Date()) || {}).day;
+            const baseGoal = base ? base.targetSteps : state.settings.defaultGoal;
+            const a = getObjectifAjuste(baseGoal, {
+                renfoA: seance.lettre === 'A',
+                renfoB: seance.lettre === 'B',
+                rollerVeille: estRollerFait(dateYesterday())
+            });
+            el.textContent = `/ ${a.objectif.toLocaleString('fr-FR')} pas`;
+        }
+    }
 }
 
 let currentBilanWeek = null;
