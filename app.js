@@ -192,6 +192,15 @@ function renderToday() {
 }
 
 /**
+ * Nom court du jour (Dim..Sam) pour une date donnee.
+ * getDay() renvoie 0 = dimanche : on ne decale que si necessaire.
+ */
+function jourCourt(date) {
+    return ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sat'][date.getDay()]
+        .replace('Sat', 'Sam');
+}
+
+/**
  * La seance A ou B est-elle cochee pour aujourd'hui ?
  */
 function estSeanceFaiteToday(lettre) {
@@ -216,8 +225,7 @@ function renderSeance() {
     const carte = document.getElementById('seance-card');
     if (!carte) return;
 
-    const jourNom = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-    const seance = getSeanceDuJour(jourNom);
+    const seance = getSeanceDuJour(jourCourt(new Date()));
 
     if (!seance) {
         carte.hidden = true;
@@ -705,8 +713,7 @@ function setupModals() {
  */
 function cocherExercice(nom, fait, box) {
     const key = formatDateKey(new Date());
-    const jourNom = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-    const seance = getSeanceDuJour(jourNom);
+    const seance = getSeanceDuJour(jourCourt(new Date()));
     if (!seance) return;
 
     if (!state.seances[key]) state.seances[key] = {};
