@@ -253,8 +253,15 @@ function formatK(n) {
  * Trouve la semaine et le jour courants dans le planning.
  */
 function getCurrentWeek(planning, date = new Date()) {
+    // Comparaison sur la date du jour : week.end vaut minuit, donc une
+    // comparaison d'instant mettrait le dimanche soir hors planning.
+    const jour = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
     for (const week of planning) {
-        if (date >= week.start && date <= week.end) {
+        const debut = new Date(week.start.getFullYear(), week.start.getMonth(), week.start.getDate());
+        const fin = new Date(week.end.getFullYear(), week.end.getMonth(), week.end.getDate());
+
+        if (jour >= debut && jour <= fin) {
             const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1;
             return { week: week, day: week.days[dayIndex], dayIndex: dayIndex };
         }

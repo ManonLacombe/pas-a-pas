@@ -270,8 +270,17 @@ body {
     text-align: right;
 }
 
-.seance-table th.c-check {
-    width: 26px;
+.seance-table th.c-check,
+.seance-table td.c-check {
+    width: 30px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.seance-table th.c-rep,
+.seance-table td.c-rep {
+    text-align: right;
+    padding-right: 2px;
 }
 
 .seance-table td {
@@ -282,7 +291,6 @@ body {
 }
 
 .seance-table td.c-rep {
-    text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
