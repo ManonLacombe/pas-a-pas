@@ -620,6 +620,14 @@ body {
 }
 
 /* Planning */
+.planning-hint {
+    margin: 0 20px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
+}
+
 .planning-list {
     padding: 0 20px;
     display: flex;
@@ -675,6 +683,20 @@ body {
     background: rgba(255,255,255,0.03);
     border-radius: 8px;
     font-size: 13px;
+}
+
+.schedule-day.editable {
+    cursor: pointer;
+}
+
+.schedule-day.editable:active {
+    opacity: 0.65;
+}
+
+.day-edit {
+    font-size: 11px;
+    opacity: 0.55;
+    flex-shrink: 0;
 }
 
 .schedule-day.today {
@@ -903,6 +925,19 @@ body {
     color: var(--text-primary);
     font-size: 16px;
     margin-bottom: 12px;
+}
+
+.modal-content input[type="date"] {
+    color-scheme: dark;
+}
+
+.modal-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .modal-content textarea {

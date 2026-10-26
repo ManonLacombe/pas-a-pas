@@ -11,6 +11,7 @@ let state = {
     journal: {},      // { "2026-10-12": { fatigue: 5, douleur: 2 } }
     seances: {},      // { "2026-10-14": { A: ["Squats","Pont fessier"], prog: false } }
     roller: {},       // { "2026-10-17": true }  -> roller fait ce jour-la
+    manual: {},       // { "2026-10-12": true }  -> pas saisis a la main (prioritaires)
     settings: {
         defaultGoal: 8000,
         unit: 'steps',
@@ -52,6 +53,7 @@ function loadData() {
         journal: {},
         seances: {},
         roller: {},
+        manual: {},
         settings: {
             defaultGoal: 8000,
             unit: 'steps',
@@ -444,6 +446,8 @@ window.mergeHistory = function () {
         for (const date of Object.keys(hist)) {
             const valeur = parseInt(hist[date], 10);
             if (!Number.isFinite(valeur) || valeur < 0) continue;
+            // Une valeur saisie a la main prime sur l'archive du capteur.
+            if (state.manual[date]) continue;
             if (valeur > (state.steps[date] || 0)) {
                 state.steps[date] = valeur;
                 change = true;
@@ -453,6 +457,8 @@ window.mergeHistory = function () {
         if (change) {
             saveData();
             renderToday();
+            const ecranPlanning = document.getElementById('screen-planning');
+            if (ecranPlanning && ecranPlanning.classList.contains('active')) renderPlanning();
         }
         return change;
     } catch (e) {
@@ -590,6 +596,7 @@ function renderPlanning() {
             const key = formatDateKey(day.date);
             const steps = state.steps[key] || 0;
             const estPasse = key <= todayKey;
+            const editable = estPasse;
             // Tous les jours deja vecus affichent leur valeur, meme 0,
             // pour que l'historique n'ait pas de trous.
             const stepsLabel = steps > 0
@@ -597,10 +604,12 @@ function renderPlanning() {
                 : (estPasse ? '0 pas' : '');
 
             return `
-                <div class="schedule-day ${isToday ? 'today' : ''}">
+                <div class="schedule-day ${isToday ? 'today' : ''} ${editable ? 'editable' : ''}"
+                     ${editable ? `data-date="${key}" role="button" tabindex="0"` : ''}>
                     <span class="day-name">${day.name}</span>
                     <span class="day-task">${day.task}</span>
                     <span class="day-steps">${stepsLabel}</span>
+                    <span class="day-edit">${editable ? '✏️' : ''}</span>
                 </div>
             `;
         }).join('');
@@ -754,6 +763,27 @@ function setupModals() {
         renderSeance();
     });
 
+    // Saisie manuelle d'un jour passe depuis le planning
+    const planningList = document.getElementById('planning-list');
+    planningList.addEventListener('click', (e) => {
+        const ligne = e.target.closest('.schedule-day.editable');
+        if (ligne && ligne.dataset.date) ouvrirModaleJour(ligne.dataset.date);
+    });
+    planningList.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const ligne = e.target.closest('.schedule-day.editable');
+        if (ligne && ligne.dataset.date) {
+            e.preventDefault();
+            ouvrirModaleJour(ligne.dataset.date);
+        }
+    });
+
+    document.getElementById('btn-cancel-day').addEventListener('click', () => {
+        document.getElementById('modal-day').classList.remove('active');
+    });
+    document.getElementById('btn-confirm-day').addEventListener('click', enregistrerPasDuJour);
+    document.getElementById('btn-reset-day-steps').addEventListener('click', effacerPasDuJour);
+
     // Bilan hebdomadaire
     document.getElementById('btn-cancel-bilan').addEventListener('click', () => {
         document.getElementById('modal-bilan').classList.remove('active');
@@ -890,6 +920,85 @@ function ouvrirModalePas(mode) {
 
     document.getElementById('modal-add').classList.add('active');
     input.focus();
+}
+
+/**
+ * Convertit une cle AAAA-MM-JJ en Date locale.
+ */
+function dateFromKey(cle) {
+    const morceaux = cle.split('-').map(Number);
+    return new Date(morceaux[0], morceaux[1] - 1, morceaux[2]);
+}
+
+/**
+ * Ouvre la modale de saisie des pas pour un jour donne.
+ */
+function ouvrirModaleJour(cle) {
+    const dateStr = cle || formatDateKey(new Date());
+    const inputDate = document.getElementById('input-day-date');
+    const inputSteps = document.getElementById('input-day-steps');
+
+    document.getElementById('modal-day-title').textContent =
+        'Pas du ' + formatDate(dateFromKey(dateStr));
+
+    inputDate.value = dateStr;
+    inputDate.max = formatDateKey(new Date());
+
+    const valeur = state.steps[dateStr];
+    inputSteps.value = (valeur === undefined ? '' : valeur);
+
+    document.getElementById('modal-day').classList.add('active');
+    inputSteps.focus();
+    inputSteps.select();
+}
+
+/**
+ * Enregistre les pas saisis a la main pour un jour passe.
+ * La valeur est marquee comme manuelle : l'archive du capteur ne l'ecrase pas.
+ */
+function enregistrerPasDuJour() {
+    const cle = document.getElementById('input-day-date').value;
+    const valeur = parseInt(document.getElementById('input-day-steps').value, 10);
+    const todayKey = formatDateKey(new Date());
+
+    if (!cle || !/^\d{4}-\d{2}-\d{2}$/.test(cle)) {
+        alert('Choisis un jour.');
+        return;
+    }
+    if (cle > todayKey) {
+        alert('Impossible de saisir un jour futur.');
+        return;
+    }
+    if (Number.isNaN(valeur) || valeur < 0 || valeur > 50000) {
+        alert('Entre un nombre de pas valide (0 à 50 000).');
+        return;
+    }
+
+    state.steps[cle] = valeur;
+    state.manual[cle] = true;
+    saveData();
+
+    document.getElementById('modal-day').classList.remove('active');
+    renderPlanning();
+    renderToday();
+}
+
+/**
+ * Efface les pas d'un jour (la valeur du capteur pourra revenir).
+ */
+function effacerPasDuJour() {
+    const cle = document.getElementById('input-day-date').value;
+    if (!cle) return;
+
+    if (!confirm('Effacer les pas du ' + formatDate(dateFromKey(cle)) + ' ?')) return;
+
+    delete state.steps[cle];
+    delete state.manual[cle];
+    saveData();
+
+    document.getElementById('modal-day').classList.remove('active');
+    renderPlanning();
+    renderToday();
 }
 
 /**

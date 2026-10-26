@@ -147,6 +147,7 @@
             <header class="header">
                 <h1>📅 Planning</h1>
             </header>
+            <p class="planning-hint">Touche un jour passé pour saisir ou corriger ses pas.</p>
             <div id="planning-list" class="planning-list">
                 <!-- Rempli dynamiquement -->
             </div>
@@ -225,6 +226,21 @@
         </div>
     </div>
 
+    <!-- Modal pas d'un autre jour -->
+    <div id="modal-day" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-day-title">Pas d'un autre jour</h2>
+            <label class="modal-label" for="input-day-date">Jour</label>
+            <input type="date" id="input-day-date">
+            <input type="number" id="input-day-steps" placeholder="Nombre de pas" min="0" max="50000">
+            <button class="btn-reset-day" id="btn-reset-day-steps">Effacer ce jour</button>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-day">Annuler</button>
+                <button class="btn btn-primary" id="btn-confirm-day">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal bilan -->
     <div id="modal-bilan" class="modal">
         <div class="modal-content">
@@ -247,9 +263,9 @@
         </div>
     </div>
 
-    <!--?v=10 : force le rechargement apres une mise a jour -->
-    <script src="planning.js?v=10"></script>
-    <script src="renfo.js?v=10"></script>
-    <script src="app.js?v=10"></script>
+    <!--?v=11 : force le rechargement apres une mise a jour -->
+    <script src="planning.js?v=11"></script>
+    <script src="renfo.js?v=11"></script>
+    <script src="app.js?v=11"></script>
 </body>
 </html>
