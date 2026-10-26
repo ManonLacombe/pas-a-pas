@@ -135,7 +135,7 @@ function renderToday() {
     const ajustement = getObjectifAjuste(baseGoal, {
         renfoA: estSeanceFaiteToday('A'),
         renfoB: estSeanceFaiteToday('B'),
-        rollerVeille: estRollerFait(dateYesterday())
+        rollerAujourdhui: estRollerFait(new Date())
     });
 
     const motifs = [];
@@ -147,6 +147,10 @@ function renderToday() {
 
     document.getElementById('steps-count').textContent = todaySteps.toLocaleString('fr-FR');
     document.getElementById('steps-goal').textContent = `/ ${goal.toLocaleString('fr-FR')} pas`;
+
+    // Interrupteur roller : reflete l'etat du jour
+    const rollerBox = document.getElementById('check-roller');
+    if (rollerBox) rollerBox.checked = !!state.roller[dateStr];
 
     // Calories et distance
     const kcal = getCalories(todaySteps, state.settings.weight, state.settings.strideLength);
@@ -201,14 +205,20 @@ function jourCourt(date) {
 }
 
 /**
- * La seance A ou B est-elle cochee pour aujourd'hui ?
+ * Une seance est-elle cochee en entier pour ce jour-la ?
  */
-function estSeanceFaiteToday(lettre) {
-    const jour = state.seances[formatDateKey(new Date())];
+function estSeanceComplete(jour, lettre) {
     if (!jour || !jour[lettre]) return false;
     const nb = jour[lettre].length || 0;
     const total = (lettre === 'A' ? SEANCE_A : SEANCE_B).length;
-    return nb >= total && total > 0;
+    return total > 0 && nb >= total;
+}
+
+/**
+ * La seance A ou B est-elle cochee pour aujourd'hui ?
+ */
+function estSeanceFaiteToday(lettre) {
+    return estSeanceComplete(state.seances[formatDateKey(new Date())], lettre);
 }
 
 /**
@@ -305,25 +315,48 @@ function renderWeekStrip() {
     const sem = current.week;
     titre.textContent = 'Semaine ' + sem.number + ' · ' + sem.rangeLabel;
 
+    const todayKey = formatDateKey(new Date());
+
     conteneur.innerHTML = sem.days.map((day, i) => {
         const key = formatDateKey(day.date);
         const steps = state.steps[key] || 0;
 
-        // Objectif ajuste si la veille indiquait fatigue ou douleur.
+        // Objectif du jour : repere du planning, puis fatigue/douleur de la
+        // veille, roller et renforcement du jour meme.
         const veille = state.journal[dateShift(day.date, -1)];
+        const adapt = getAdaptation(veille);
+
+        const seance = getSeanceDuJour(jourCourt(day.date));
+        const jourSeance = state.seances[key] || {};
+        const renfoA = !!seance && seance.lettre === 'A' && estSeanceComplete(jourSeance, 'A');
+        const renfoB = !!seance && seance.lettre === 'B' && estSeanceComplete(jourSeance, 'B');
+
+        const ajustement = getObjectifAjuste(day.targetSteps, {
+            renfoA: renfoA,
+            renfoB: renfoB,
+            rollerAujourdhui: !!state.roller[key]
+        });
+
         const cible = Math.max(1000,
-            Math.round(day.targetSteps * getAdaptation(veille).facteur / 100) * 100);
+            Math.round(ajustement.objectif * adapt.facteur / 100) * 100);
 
         const atteint = steps >= cible;
+        const estPasse = key <= todayKey;
         const classes = ['week-day'];
         if (i === current.dayIndex) classes.push('aujourdhui');
         if (steps > 0) classes.push('fait');
-        if (atteint) classes.push('atteint');
+        if (atteint && steps > 0) classes.push('atteint');
+
+        // Un jour passe sans pas enregistre affiche 0, pas un tiret : on veut
+        // voir l'historique complet, pas des trous.
+        const pasAffiches = steps > 0
+            ? steps.toLocaleString('fr-FR')
+            : (estPasse ? '0' : '—');
 
         return `
             <div class="${classes.join(' ')}" data-date="${key}">
                 <span class="wd-nom">${day.name}</span>
-                <span class="wd-pas">${steps > 0 ? steps.toLocaleString('fr-FR') : '—'}</span>
+                <span class="wd-pas">${pasAffiches}</span>
                 <span class="wd-obj">${cible >= 1000 ? Math.round(cible / 1000 * 10) / 10 + 'k' : cible}</span>
                 <span class="wd-etat">${atteint ? '✓' : (steps > 0 ? '·' : '')}</span>
             </div>
@@ -397,6 +430,38 @@ function majHint(fatigue, douleur) {
 }
 
 /**
+ * Recupere l'historique journalier archive par le service Android.
+ * Le service enregistre chaque jour les pas mesures, meme si l'app n'a pas
+ * ete ouverte : sans cela, les jours non consultes disparaissaient du planning.
+ */
+window.mergeHistory = function () {
+    if (!window.Android || typeof window.Android.getHistory !== 'function') return false;
+
+    try {
+        const hist = JSON.parse(window.Android.getHistory() || '{}');
+        let change = false;
+
+        for (const date of Object.keys(hist)) {
+            const valeur = parseInt(hist[date], 10);
+            if (!Number.isFinite(valeur) || valeur < 0) continue;
+            if (valeur > (state.steps[date] || 0)) {
+                state.steps[date] = valeur;
+                change = true;
+            }
+        }
+
+        if (change) {
+            saveData();
+            renderToday();
+        }
+        return change;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+};
+
+/**
  * Point d'entree appele par l'application Android native.
  * Le telephone mesure les pas en arriere-plan et pousse la valeur ici.
  */
@@ -434,6 +499,7 @@ window.syncPasEtAfficher = function () {
         try {
             const steps = window.Android.getStepsToday();
             if (steps > 0) { window.updateSteps(steps); } else { showSensorBadge(); }
+            if (typeof window.mergeHistory === 'function') window.mergeHistory();
         } catch (e) { console.error(e); }
     }
 };
@@ -522,8 +588,13 @@ function renderPlanning() {
         const daysHtml = week.days.map(day => {
             const isToday = formatDateKey(day.date) === todayKey;
             const key = formatDateKey(day.date);
-            const steps = state.steps[key];
-            const stepsLabel = steps ? `${steps.toLocaleString('fr-FR')} pas` : '';
+            const steps = state.steps[key] || 0;
+            const estPasse = key <= todayKey;
+            // Tous les jours deja vecus affichent leur valeur, meme 0,
+            // pour que l'historique n'ait pas de trous.
+            const stepsLabel = steps > 0
+                ? `${steps.toLocaleString('fr-FR')} pas`
+                : (estPasse ? '0 pas' : '');
 
             return `
                 <div class="schedule-day ${isToday ? 'today' : ''}">
@@ -674,12 +745,13 @@ function setupModals() {
         renderToday();
     });
 
-    // Roller de la veille
-    document.getElementById('check-roller-veille').addEventListener('change', (e) => {
-        const key = formatDateKey(dateYesterday());
+    // Roller du jour : reduit l'objectif du jour meme
+    document.getElementById('check-roller').addEventListener('change', (e) => {
+        const key = formatDateKey(new Date());
         state.roller[key] = e.target.checked;
         saveData();
         renderToday();
+        renderSeance();
     });
 
     // Bilan hebdomadaire
@@ -741,7 +813,7 @@ function cocherExercice(nom, fait, box) {
             const a = getObjectifAjuste(baseGoal, {
                 renfoA: seance.lettre === 'A',
                 renfoB: seance.lettre === 'B',
-                rollerVeille: estRollerFait(dateYesterday())
+                rollerAujourdhui: estRollerFait(new Date())
             });
             el.textContent = `/ ${a.objectif.toLocaleString('fr-FR')} pas`;
         }

@@ -58,18 +58,18 @@ const SEANCE_DU_JOUR = {
  * @param {object} opts
  * @param {boolean} opts.renfoA fait-on le renforcement A aujourd'hui ?
  * @param {boolean} opts.renfoB fait-on le renforcement B aujourd'hui ?
- * @param {boolean} opts.rollerVeille y a-t-il eu du roller hier soir ?
+ * @param {boolean} opts.rollerAujourdhui y a-t-il eu du roller aujourd'hui ?
  * @returns {{objectif:number, motifs:string[]}}
  */
 function getObjectifAjuste(base, opts) {
-    const { renfoA = false, renfoB = false, rollerVeille = false } = opts || {};
+    const { renfoA = false, renfoB = false, rollerAujourdhui = false } = opts || {};
 
     let facteur = 1;
     const motifs = [];
 
-    if (rollerVeille) {
+    if (rollerAujourdhui) {
         facteur *= COUT_ROLLER;
-        motifs.push('roller hier soir');
+        motifs.push('roller aujourd’hui');
     }
 
     // Le renforcement du jour conduit a reduire legerement la marche.
